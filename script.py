@@ -21,15 +21,37 @@ class Script:
         """Retourne le chemin du fichier de configuration."""
         return os.path.join(program.current_path, "data", Script.CONFIG_FILE)
 
+    # Éditeurs prédéfinis avec leurs commandes
+    EDITORS = {
+        "vscode": {"cmd": "code", "name": "Visual Studio Code"},
+        "codium": {"cmd": "codium", "name": "VSCodium"},
+        "nvim": {"cmd": "nvim", "name": "Neovim"},
+        "vim": {"cmd": "vim", "name": "Vim"},
+        "nano": {"cmd": "nano", "name": "Nano"},
+        "notepad++": {"cmd": "notepad++", "name": "Notepad++"},
+        "sublime": {"cmd": "subl", "name": "Sublime Text"},
+        "atom": {"cmd": "atom", "name": "Atom"},
+        "emacs": {"cmd": "emacs", "name": "Emacs"},
+        "notepad": {"cmd": "notepad", "name": "Notepad"},
+        "system": {"cmd": None, "name": "Éditeur système par défaut"},
+    }
+
     @staticmethod
     def load_config(program):
         """Charge la configuration depuis le fichier JSON."""
         config_path = Script.get_config_path(program)
-        default_config = {"autostart": {"enabled": False, "scripts": []}}
+        default_config = {
+            "autostart": {"enabled": False, "scripts": []},
+            "editor": "system"  # Éditeur par défaut: système
+        }
         try:
             if os.path.exists(config_path):
                 with open(config_path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    config = json.load(f)
+                    # Assurer la compatibilité avec les anciennes configs
+                    if "editor" not in config:
+                        config["editor"] = "system"
+                    return config
         except (json.JSONDecodeError, IOError):
             pass
         return default_config
@@ -365,7 +387,7 @@ class Script:
         
         edit = input("Voulez-vous l'éditer maintenant? (o/n): ").strip().lower()
         if edit == 'o':
-            Script._open_in_editor(path)
+            Script._open_in_editor(path, program=program)
         
         input("\nAppuyez sur Entrée pour continuer...")
 
@@ -378,24 +400,40 @@ class Script:
             return
         
         script_path = os.path.join(program.scripts_path, script)
-        Script._open_in_editor(script_path)
+        Script._open_in_editor(script_path, program=program)
         input("\nAppuyez sur Entrée pour continuer...")
 
     @staticmethod
-    def _open_in_editor(path, detached=True):
-        """Ouvre un fichier dans l'éditeur par défaut."""
+    def _open_in_editor(path, detached=True, program=None):
+        """Ouvre un fichier dans l'éditeur configuré."""
         try:
+            editor_cmd = None
+            
+            # Récupérer l'éditeur configuré si program est fourni
+            if program:
+                config = Script.load_config(program)
+                editor_key = config.get("editor", "system")
+                
+                if config.get("editor_custom", False):
+                    # Commande personnalisée
+                    editor_cmd = editor_key
+                elif editor_key in Script.EDITORS:
+                    editor_cmd = Script.EDITORS[editor_key]["cmd"]
+            
             if detached:
                 # Ouverture détachée - le gestionnaire continue à fonctionner
-                pid = DetachedLauncher.open_file_detached(path)
+                pid = DetachedLauncher.open_file_detached(path, editor=editor_cmd)
                 if pid is not None:
-                    print(f"Ouverture détachée de {path} (PID: {pid})")
+                    editor_name = editor_cmd if editor_cmd else "éditeur système"
+                    print(f"Ouverture de {path} avec {editor_name}")
                     print("Le gestionnaire reste actif pendant l'édition.")
                 else:
                     print(f"Erreur lors de l'ouverture de {path}")
             else:
                 # Ancien comportement bloquant
-                if os.name == 'nt':  # Windows
+                if editor_cmd:
+                    subprocess.run([editor_cmd, path])
+                elif os.name == 'nt':  # Windows
                     os.startfile(path)
                 else:  # Linux/Mac
                     subprocess.run(["xdg-open", path])
@@ -412,7 +450,7 @@ class Script:
             return
         
         script_path = os.path.join(program.scripts_path, script)
-        Script._open_in_editor(script_path)
+        Script._open_in_editor(script_path, program=program)
         input("\nAppuyez sur Entrée pour continuer...")
 
     @staticmethod
@@ -441,11 +479,17 @@ class Script:
     @staticmethod
     def option(program):
         """Affiche les options et paramètres."""
+        config = Script.load_config(program)
+        current_editor = config.get("editor", "system")
+        editor_info = Script.EDITORS.get(current_editor, Script.EDITORS["system"])
+        
         print("\n--- Options & Paramètres ---")
         print(f"  1. Chemin scripts: {program.scripts_path}")
         print(f"  2. Cible: {program.target}")
         print(f"  3. Langages supportés: {', '.join(Script.LANGUAGES.keys())}")
+        print(f"  4. Éditeur: {editor_info['name']} ({current_editor})")
         print(f"\n  C. Changer le chemin des scripts")
+        print(f"  E. Changer l'éditeur de fichiers")
         print(f"  F. Ouvrir le dossier scripts dans l'explorateur")
         print(f"  R. Retour")
         
@@ -461,7 +505,53 @@ class Script:
                     os.makedirs(new_path, exist_ok=True)
                     program.scripts_path = new_path
                     print(f"Dossier créé: {new_path}")
+        elif choice == "e":
+            Script._select_editor(program)
         elif choice == "f":
             Script.open_folder(program.scripts_path)
         
         input("\nAppuyez sur Entrée pour continuer...")
+
+    @staticmethod
+    def _select_editor(program):
+        """Permet de choisir l'éditeur de fichiers."""
+        config = Script.load_config(program)
+        current_editor = config.get("editor", "system")
+        
+        print("\n--- Choix de l'éditeur ---")
+        print(f"Éditeur actuel: {Script.EDITORS.get(current_editor, {}).get('name', current_editor)}\n")
+        
+        editors_list = list(Script.EDITORS.keys())
+        for i, editor_key in enumerate(editors_list, 1):
+            editor = Script.EDITORS[editor_key]
+            marker = " ✓" if editor_key == current_editor else ""
+            cmd_info = f"({editor['cmd']})" if editor['cmd'] else "(défaut OS)"
+            print(f"  {i}. {editor['name']} {cmd_info}{marker}")
+        
+        print(f"\n  P. Personnalisé (commande custom)")
+        print(f"  R. Retour")
+        
+        choice = input("\nChoix: ").strip().lower()
+        
+        if choice == "r":
+            return
+        elif choice == "p":
+            custom_cmd = input("Commande de l'éditeur (ex: nvim, code, subl): ").strip()
+            if custom_cmd:
+                config["editor"] = custom_cmd
+                config["editor_custom"] = True
+                Script.save_config(program, config)
+                print(f"Éditeur personnalisé configuré: {custom_cmd}")
+        else:
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(editors_list):
+                    selected = editors_list[idx]
+                    config["editor"] = selected
+                    config["editor_custom"] = False
+                    Script.save_config(program, config)
+                    print(f"Éditeur configuré: {Script.EDITORS[selected]['name']}")
+                else:
+                    print("Choix invalide.")
+            except ValueError:
+                print("Choix invalide.")
