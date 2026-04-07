@@ -193,6 +193,75 @@ class DetachedLauncher:
         else:
             return DetachedLauncher.launch(["xdg-open", folder_path])
 
+    @staticmethod
+    def open_tui_editor(filepath: str, editor: str) -> Optional[int]:
+        """
+        Ouvre un fichier dans un éditeur TUI (terminal) dans une nouvelle fenêtre.
+        
+        Args:
+            filepath: Chemin du fichier à ouvrir
+            editor: Commande de l'éditeur TUI (nvim, vim, nano, etc.)
+        
+        Returns:
+            PID du processus lancé
+        """
+        filepath = os.path.abspath(filepath)
+        
+        if platform.system() == "Windows":
+            # Windows: ouvrir dans un nouveau cmd ou Windows Terminal
+            # Essayer d'abord Windows Terminal, sinon cmd
+            try:
+                # Vérifier si Windows Terminal est disponible
+                wt_check = subprocess.run(
+                    ["where", "wt"], 
+                    capture_output=True, 
+                    text=True
+                )
+                if wt_check.returncode == 0:
+                    # Windows Terminal disponible
+                    return DetachedLauncher.launch([
+                        "wt", "-d", os.path.dirname(filepath),
+                        editor, filepath
+                    ])
+            except Exception:
+                pass
+            
+            # Fallback: cmd classique
+            return DetachedLauncher.launch([
+                "cmd", "/c", "start", "cmd", "/k", editor, filepath
+            ])
+        
+        elif platform.system() == "Darwin":  # macOS
+            # Ouvrir dans Terminal.app
+            cmd_str = f'{editor} "{filepath}"'
+            return DetachedLauncher.launch([
+                "osascript", "-e",
+                f'tell app "Terminal" to do script "{cmd_str}"'
+            ])
+        
+        else:  # Linux
+            # Essayer différents terminaux
+            terminals = [
+                ("gnome-terminal", ["gnome-terminal", "--", editor, filepath]),
+                ("konsole", ["konsole", "-e", editor, filepath]),
+                ("xfce4-terminal", ["xfce4-terminal", "-e", f"{editor} {filepath}"]),
+                ("xterm", ["xterm", "-e", editor, filepath]),
+            ]
+            
+            for term_name, term_cmd in terminals:
+                try:
+                    check = subprocess.run(
+                        ["which", term_name],
+                        capture_output=True
+                    )
+                    if check.returncode == 0:
+                        return DetachedLauncher.launch(term_cmd)
+                except Exception:
+                    continue
+            
+            # Fallback ultime
+            return DetachedLauncher.launch(["xterm", "-e", editor, filepath])
+
 
 # Alias pour rétrocompatibilité
 def detached_open(filepath: str, editor: Optional[str] = None) -> Optional[int]:

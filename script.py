@@ -22,18 +22,19 @@ class Script:
         return os.path.join(program.current_path, "data", Script.CONFIG_FILE)
 
     # Éditeurs prédéfinis avec leurs commandes
+    # "tui": True indique un éditeur terminal qui nécessite une fenêtre console
     EDITORS = {
-        "vscode": {"cmd": "code", "name": "Visual Studio Code"},
-        "codium": {"cmd": "codium", "name": "VSCodium"},
-        "nvim": {"cmd": "nvim", "name": "Neovim"},
-        "vim": {"cmd": "vim", "name": "Vim"},
-        "nano": {"cmd": "nano", "name": "Nano"},
-        "notepad++": {"cmd": "notepad++", "name": "Notepad++"},
-        "sublime": {"cmd": "subl", "name": "Sublime Text"},
-        "atom": {"cmd": "atom", "name": "Atom"},
-        "emacs": {"cmd": "emacs", "name": "Emacs"},
-        "notepad": {"cmd": "notepad", "name": "Notepad"},
-        "system": {"cmd": None, "name": "Éditeur système par défaut"},
+        "vscode": {"cmd": "code", "name": "Visual Studio Code", "tui": False},
+        "codium": {"cmd": "codium", "name": "VSCodium", "tui": False},
+        "nvim": {"cmd": "nvim", "name": "Neovim", "tui": True},
+        "vim": {"cmd": "vim", "name": "Vim", "tui": True},
+        "nano": {"cmd": "nano", "name": "Nano", "tui": True},
+        "notepad++": {"cmd": "notepad++", "name": "Notepad++", "tui": False},
+        "sublime": {"cmd": "subl", "name": "Sublime Text", "tui": False},
+        "atom": {"cmd": "atom", "name": "Atom", "tui": False},
+        "emacs": {"cmd": "emacs", "name": "Emacs", "tui": True},
+        "notepad": {"cmd": "notepad", "name": "Notepad", "tui": False},
+        "system": {"cmd": None, "name": "Éditeur système par défaut", "tui": False},
     }
 
     @staticmethod
@@ -42,7 +43,9 @@ class Script:
         config_path = Script.get_config_path(program)
         default_config = {
             "autostart": {"enabled": False, "scripts": []},
-            "editor": "system"  # Éditeur par défaut: système
+            "editor": "system",  # Éditeur par défaut: système
+            "first_run_complete": False,
+            "ascii_enabled": True
         }
         try:
             if os.path.exists(config_path):
@@ -51,6 +54,10 @@ class Script:
                     # Assurer la compatibilité avec les anciennes configs
                     if "editor" not in config:
                         config["editor"] = "system"
+                    if "first_run_complete" not in config:
+                        config["first_run_complete"] = False
+                    if "ascii_enabled" not in config:
+                        config["ascii_enabled"] = True
                     return config
         except (json.JSONDecodeError, IOError):
             pass
@@ -408,6 +415,7 @@ class Script:
         """Ouvre un fichier dans l'éditeur configuré."""
         try:
             editor_cmd = None
+            is_tui = False
             
             # Récupérer l'éditeur configuré si program est fourni
             if program:
@@ -415,12 +423,22 @@ class Script:
                 editor_key = config.get("editor", "system")
                 
                 if config.get("editor_custom", False):
-                    # Commande personnalisée
+                    # Commande personnalisée - vérifier si c'est un éditeur TUI
                     editor_cmd = editor_key
+                    is_tui = config.get("editor_tui", False)
                 elif editor_key in Script.EDITORS:
                     editor_cmd = Script.EDITORS[editor_key]["cmd"]
+                    is_tui = Script.EDITORS[editor_key].get("tui", False)
             
-            if detached:
+            if is_tui:
+                # Éditeur TUI : ouvrir dans un nouveau terminal
+                pid = DetachedLauncher.open_tui_editor(path, editor_cmd)
+                if pid is not None:
+                    print(f"Ouverture de {path} avec {editor_cmd} dans un terminal")
+                    print("Le gestionnaire reste actif pendant l'édition.")
+                else:
+                    print(f"Erreur lors de l'ouverture de {path}")
+            elif detached:
                 # Ouverture détachée - le gestionnaire continue à fonctionner
                 pid = DetachedLauncher.open_file_detached(path, editor=editor_cmd)
                 if pid is not None:
@@ -443,15 +461,58 @@ class Script:
 
     @staticmethod
     def open_script(program):
-        """Ouvre un script dans l'éditeur par défaut."""
-        print("\n--- Ouverture d'un script ---")
-        script = Script.select_script(program, "ouvrir")
-        if not script:
+        """Ouvre le dossier scripts dans l'explorateur ou liste dans le terminal."""
+        print("\n--- Ouvrir les Scripts ---")
+        print("  1. Ouvrir dans l'explorateur (UI)")
+        print("  2. Lister dans le terminal")
+        print("  R. Retour")
+        
+        choice = input("\nChoix: ").strip().lower()
+        
+        if choice == "1":
+            Script.open_folder(program.scripts_path)
+            print(f"Ouverture de: {program.scripts_path}")
+        elif choice == "2":
+            Script.list_scripts_terminal(program)
+        elif choice == "r":
+            return
+        else:
+            print("Choix invalide.")
+        
+        input("\nAppuyez sur Entrée pour continuer...")
+
+    @staticmethod
+    def list_scripts_terminal(program):
+        """Liste les scripts dans le terminal."""
+        scripts = Script.list_scripts(program.scripts_path)
+        
+        if not scripts:
+            print("\nAucun script trouvé.")
             return
         
-        script_path = os.path.join(program.scripts_path, script)
-        Script._open_in_editor(script_path, program=program)
-        input("\nAppuyez sur Entrée pour continuer...")
+        print(f"\n--- Scripts dans {program.scripts_path} ---\n")
+        
+        # Grouper par extension
+        by_ext = {}
+        for script in scripts:
+            ext = os.path.splitext(script)[1].lower()
+            if ext not in by_ext:
+                by_ext[ext] = []
+            by_ext[ext].append(script)
+        
+        # Afficher avec numérotation
+        total = 0
+        for ext, files in sorted(by_ext.items()):
+            lang_name = next((k for k, v in Script.LANGUAGES.items() if v["ext"] == ext), ext)
+            print(f"  [{lang_name.upper()}]")
+            for f in sorted(files):
+                total += 1
+                size = os.path.getsize(os.path.join(program.scripts_path, f))
+                size_str = f"{size} B" if size < 1024 else f"{size/1024:.1f} KB"
+                print(f"    {total:3}. {f} ({size_str})")
+            print()
+        
+        print(f"Total: {total} script(s)")
 
     @staticmethod
     def open_folder(path, detached=True):
@@ -482,15 +543,19 @@ class Script:
         config = Script.load_config(program)
         current_editor = config.get("editor", "system")
         editor_info = Script.EDITORS.get(current_editor, Script.EDITORS["system"])
+        ascii_status = "Activé" if config.get("ascii_enabled", True) else "Désactivé"
         
         print("\n--- Options & Paramètres ---")
         print(f"  1. Chemin scripts: {program.scripts_path}")
         print(f"  2. Cible: {program.target}")
         print(f"  3. Langages supportés: {', '.join(Script.LANGUAGES.keys())}")
         print(f"  4. Éditeur: {editor_info['name']} ({current_editor})")
+        print(f"  5. ASCII Art: {ascii_status}")
         print(f"\n  C. Changer le chemin des scripts")
         print(f"  E. Changer l'éditeur de fichiers")
+        print(f"  A. Activer/Désactiver ASCII Art")
         print(f"  F. Ouvrir le dossier scripts dans l'explorateur")
+        print(f"  W. Relancer l'assistant de configuration")
         print(f"  R. Retour")
         
         choice = input("\nChoix: ").strip().lower()
@@ -507,8 +572,17 @@ class Script:
                     print(f"Dossier créé: {new_path}")
         elif choice == "e":
             Script._select_editor(program)
+        elif choice == "a":
+            config["ascii_enabled"] = not config.get("ascii_enabled", True)
+            Script.save_config(program, config)
+            status = "activé" if config["ascii_enabled"] else "désactivé"
+            print(f"ASCII Art {status}.")
         elif choice == "f":
             Script.open_folder(program.scripts_path)
+        elif choice == "w":
+            config["first_run_complete"] = False
+            Script.save_config(program, config)
+            Script.first_run_setup(program)
         
         input("\nAppuyez sur Entrée pour continuer...")
 
@@ -540,6 +614,9 @@ class Script:
             if custom_cmd:
                 config["editor"] = custom_cmd
                 config["editor_custom"] = True
+                # Demander si c'est un éditeur TUI
+                is_tui = input("Est-ce un éditeur terminal (nvim, vim, nano)? (o/n): ").strip().lower()
+                config["editor_tui"] = is_tui == 'o'
                 Script.save_config(program, config)
                 print(f"Éditeur personnalisé configuré: {custom_cmd}")
         else:
@@ -555,3 +632,109 @@ class Script:
                     print("Choix invalide.")
             except ValueError:
                 print("Choix invalide.")
+
+    @staticmethod
+    def is_first_run(program):
+        """Vérifie si c'est la première exécution du gestionnaire."""
+        config = Script.load_config(program)
+        return not config.get("first_run_complete", False)
+
+    @staticmethod
+    def first_run_setup(program):
+        """Assistant de configuration pour la première utilisation."""
+        from program import Program
+        Program.clear_screen()
+        
+        print("\n" + "=" * 60)
+        print("        🎉 BIENVENUE DANS LE GESTIONNAIRE DE SCRIPTS 🎉")
+        print("=" * 60)
+        print("\nC'est votre première utilisation !")
+        print("Configurons rapidement vos préférences.\n")
+        
+        config = Script.load_config(program)
+        
+        # === Étape 1: Éditeur ===
+        print("-" * 40)
+        print("ÉTAPE 1/3 : Choix de l'éditeur")
+        print("-" * 40)
+        print("\nQuel éditeur souhaitez-vous utiliser pour éditer vos scripts?\n")
+        
+        editors_list = list(Script.EDITORS.keys())
+        for i, editor_key in enumerate(editors_list, 1):
+            editor = Script.EDITORS[editor_key]
+            cmd_info = f"({editor['cmd']})" if editor['cmd'] else "(défaut OS)"
+            tui_info = " [Terminal]" if editor.get('tui', False) else ""
+            print(f"  {i}. {editor['name']} {cmd_info}{tui_info}")
+        
+        print(f"\n  P. Personnalisé (commande custom)")
+        
+        choice = input("\nVotre choix [1-11 ou P]: ").strip().lower()
+        
+        if choice == "p":
+            custom_cmd = input("Commande de l'éditeur: ").strip()
+            if custom_cmd:
+                config["editor"] = custom_cmd
+                config["editor_custom"] = True
+                is_tui = input("Est-ce un éditeur terminal (o/n)? ").strip().lower()
+                config["editor_tui"] = is_tui == 'o'
+        else:
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(editors_list):
+                    config["editor"] = editors_list[idx]
+                    config["editor_custom"] = False
+            except ValueError:
+                config["editor"] = "system"
+        
+        # === Étape 2: ASCII Art ===
+        Program.clear_screen()
+        print("\n" + "-" * 40)
+        print("ÉTAPE 2/3 : Affichage ASCII Art")
+        print("-" * 40)
+        
+        # Afficher un exemple d'ASCII art
+        ascii_art = program.theme_manager.get_current_ascii()
+        if ascii_art:
+            print("\nExemple d'ASCII art actuel:\n")
+            print(ascii_art)
+        
+        print("\nVoulez-vous afficher l'ASCII art dans le menu principal?\n")
+        print("  1. Oui (recommandé)")
+        print("  2. Non")
+        
+        ascii_choice = input("\nVotre choix [1/2]: ").strip()
+        config["ascii_enabled"] = ascii_choice != "2"
+        
+        # === Étape 3: Thème ===
+        Program.clear_screen()
+        print("\n" + "-" * 40)
+        print("ÉTAPE 3/3 : Personnalisation")
+        print("-" * 40)
+        print("\nVous pourrez personnaliser davantage via:")
+        print("  • Menu 8 (Personnalisation) - ASCII art, thèmes")
+        print("  • Menu 6 (Options) - Éditeur, chemins")
+        print("  • Menu 7 (Plugins) - Extensions")
+        
+        input("\nAppuyez sur Entrée pour terminer la configuration...")
+        
+        # Marquer comme configuré
+        config["first_run_complete"] = True
+        Script.save_config(program, config)
+        
+        Program.clear_screen()
+        print("\n" + "=" * 60)
+        print("        ✅ CONFIGURATION TERMINÉE !")
+        print("=" * 60)
+        
+        editor_name = config.get("editor", "system")
+        if editor_name in Script.EDITORS:
+            editor_name = Script.EDITORS[editor_name]["name"]
+        
+        print(f"\n  • Éditeur: {editor_name}")
+        print(f"  • ASCII Art: {'Activé' if config.get('ascii_enabled', True) else 'Désactivé'}")
+        print(f"  • Dossier scripts: {program.scripts_path}")
+        
+        print("\nVous pouvez modifier ces paramètres à tout moment")
+        print("dans le menu Options & Paramètres (6/P).\n")
+        
+        input("Appuyez sur Entrée pour démarrer...")

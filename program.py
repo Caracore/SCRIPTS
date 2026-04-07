@@ -29,16 +29,25 @@ class Program:
     def startup(self):
         """Exécute les opérations au démarrage."""
         self.clear_screen()
+        
+        # Vérifier si c'est la première utilisation
+        if s.is_first_run(self):
+            s.first_run_setup(self)
+        
         # Déclencher le hook ON_STARTUP
         self.plugin_manager.trigger_hook(HookType.ON_STARTUP)
         s.run_autostart(self)
 
     def ascii_dashboard(self):
         """Affiche un tableau de bord ASCII personnalisable."""
-        # Afficher l'ASCII art (personnalisable via themes)
-        ascii_art = self.theme_manager.get_current_ascii()
-        if ascii_art:
-            print(ascii_art)
+        # Charger la config pour vérifier si ASCII est activé
+        config = s.load_config(self)
+        
+        # Afficher l'ASCII art si activé
+        if config.get("ascii_enabled", True):
+            ascii_art = self.theme_manager.get_current_ascii()
+            if ascii_art:
+                print(ascii_art)
         
         # Message de bienvenue personnalisé ou par défaut
         custom_welcome = self.theme_manager.get_custom_welcome()
@@ -69,7 +78,7 @@ class Program:
             print("  1. Executer Un Script    [E]")
             print("  2. Nouveau Script        [N]")
             print("  3. Éditer Un Script      [D]")
-            print("  4. Ouvrir Un Script      [O]")
+            print("  4. Parcourir Scripts     [O]")
             print("  5. Auto-Start            [A]")
             print("  6. Options & Paramètres  [P]")
             print("  7. Plugins               [L]")
