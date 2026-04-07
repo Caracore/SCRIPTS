@@ -115,8 +115,8 @@ if __name__ == "__main__":
         """Ajoute des éléments au menu."""
         return [
             {
-                "key": "x",
-                "label": "Exemple Plugin Action",
+                "key": "10",
+                "label": "Exemple Plugin Action [10]",
                 "handler": self.custom_action
             }
         ]

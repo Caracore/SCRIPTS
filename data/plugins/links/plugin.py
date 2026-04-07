@@ -298,7 +298,17 @@ class LinksPlugin(Plugin):
         input("\nAppuyez sur Entrée...")
     
     def _open_all_links(self) -> None:
-        """Ouvre tous les liens dans le navigateur."""
+        """Ouvre tous les liens dans le navigateur avec protection de sécurité."""
+        import time
+        
+        # Limites de sécurité
+        MAX_LINKS_NO_CONFIRM = 5      # Pas de warning en dessous
+        MAX_LINKS_WARNING = 15        # Warning entre 5 et 15
+        MAX_LINKS_CRITICAL = 30       # Limite critique avec délai
+        MAX_LINKS_ABSOLUTE = 50       # Limite absolue
+        DELAY_BETWEEN_LINKS = 0.3     # Délai entre ouvertures (secondes)
+        DELAY_CRITICAL = 1.0          # Délai pour beaucoup de liens
+        
         if not self.links:
             print("\nAucun lien à ouvrir.")
             input("\nAppuyez sur Entrée...")
@@ -327,14 +337,88 @@ class LinksPlugin(Plugin):
         else:
             links_to_open = self.links
         
-        confirm = input(f"\nOuvrir {len(links_to_open)} lien(s) ? (o/n): ").strip().lower()
-        if confirm == 'o':
-            for link in links_to_open:
-                url = link.get("url", "")
-                if url:
-                    print(f"  Ouverture: {link.get('name', url)}")
+        count = len(links_to_open)
+        
+        # === PROTECTION DE SÉCURITÉ ===
+        
+        # Limite absolue
+        if count > MAX_LINKS_ABSOLUTE:
+            print(f"\n⛔ LIMITE DE SÉCURITÉ: Maximum {MAX_LINKS_ABSOLUTE} liens autorisés.")
+            print(f"   Vous essayez d'ouvrir {count} liens.")
+            print(f"\n   Utilisez les catégories ou la recherche pour réduire la sélection.")
+            input("\nAppuyez sur Entrée...")
+            return
+        
+        # Warning critique (30+ liens)
+        if count > MAX_LINKS_CRITICAL:
+            print(f"\n⚠️  ATTENTION: Vous allez ouvrir {count} liens!")
+            print(f"   Cela peut:")
+            print(f"   • Ralentir considérablement votre système")
+            print(f"   • Consommer beaucoup de mémoire RAM")
+            print(f"   • Saturer votre navigateur")
+            print(f"\n   Un délai de {DELAY_CRITICAL}s sera appliqué entre chaque lien.")
+            confirm = input(f"\n⚠️  Êtes-vous VRAIMENT sûr? Tapez 'OUI' pour confirmer: ").strip()
+            if confirm != "OUI":
+                print("\n❌ Opération annulée.")
+                input("\nAppuyez sur Entrée...")
+                return
+            delay = DELAY_CRITICAL
+        
+        # Warning modéré (15-30 liens)
+        elif count > MAX_LINKS_WARNING:
+            print(f"\n⚠️  Vous allez ouvrir {count} liens.")
+            print(f"   Cela peut ralentir votre navigateur.")
+            confirm = input(f"\nContinuer? (o/N): ").strip().lower()
+            if confirm != 'o':
+                print("\n❌ Opération annulée.")
+                input("\nAppuyez sur Entrée...")
+                return
+            delay = DELAY_BETWEEN_LINKS
+        
+        # Warning léger (5-15 liens)
+        elif count > MAX_LINKS_NO_CONFIRM:
+            confirm = input(f"\nOuvrir {count} lien(s)? (o/N): ").strip().lower()
+            if confirm != 'o':
+                return
+            delay = DELAY_BETWEEN_LINKS
+        
+        # Peu de liens (< 5)
+        else:
+            confirm = input(f"\nOuvrir {count} lien(s)? (o/N): ").strip().lower()
+            if confirm != 'o':
+                return
+            delay = 0.1  # Délai minimal
+        
+        # === OUVERTURE DES LIENS ===
+        print(f"\n🔗 Ouverture de {count} lien(s)...")
+        if count > MAX_LINKS_NO_CONFIRM:
+            print(f"   (Délai de {delay}s entre chaque lien)")
+        
+        opened = 0
+        errors = 0
+        
+        for i, link in enumerate(links_to_open, 1):
+            url = link.get("url", "")
+            name = link.get("name", url)
+            
+            if url:
+                try:
+                    print(f"  [{i}/{count}] {name[:40]}{'...' if len(name) > 40 else ''}")
                     webbrowser.open(url)
-            print(f"\n✓ {len(links_to_open)} lien(s) ouvert(s)!")
+                    opened += 1
+                    
+                    # Délai entre les ouvertures (sauf pour le dernier)
+                    if i < count and delay > 0:
+                        time.sleep(delay)
+                        
+                except Exception as e:
+                    print(f"  ❌ Erreur: {name} - {e}")
+                    errors += 1
+        
+        # Résumé
+        print(f"\n✓ {opened} lien(s) ouvert(s)")
+        if errors > 0:
+            print(f"⚠️  {errors} erreur(s)")
         
         input("\nAppuyez sur Entrée...")
     
