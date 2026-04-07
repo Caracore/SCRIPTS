@@ -116,3 +116,40 @@ Pour tester:
  cd C:\Users\jm214\Documents\SCRIPTS
  python launcher.py
  # Aller dans 9. Navigation pour configurer le mode dynamique
+
+✅ Corrections appliquées
+
+1. Clignotement en mode dynamique (navigation.py)
+
+ - Le menu utilise maintenant les séquences ANSI pour repositionner le curseur et réécrire sans effacer l'écran
+ - Premier rendu : clear_screen() classique
+ - Rendus suivants : move_to_home() + réécriture ligne par ligne
+ - Résultat : écran stable, pas de flash
+
+2. Notifications (notifications/plugin.py)
+
+Dépendances recommandées :
+
+┌──────────────┬───────────────────┬─────────────────────┬────────────────┐
+│ Package      │ OS                │ Sécurité            │ Notes          │
+├──────────────┼───────────────────┼─────────────────────┼────────────────┤
+│ plyer ⭐     │ Windows/Linux/Mac │ ✓ Maintenu par Kivy │ Recommandé     │
+├──────────────┼───────────────────┼─────────────────────┼────────────────┤
+│ notify2      │ Linux             │ ✓ D-Bus natif       │ Fallback Linux │
+└──────────────┴───────────────────┴─────────────────────┴────────────────┘
+
+Fallbacks automatiques :
+
+ - Windows : PowerShell avec Windows.Forms (BalloonTip)
+ - Linux : notify-send (libnotify)
+
+3. Installation des dépendances
+
+Menu option 9 → Interface pour installer :
+
+ - pip install plyer (recommandé, cross-platform)
+ - pip install notify2 (Linux)
+
+Pour installer maintenant :
+
+ pip install plyer

@@ -758,14 +758,18 @@ Cela permet de lancer le gestionnaire au boot en toute sécurité.
             else:
                 exec_cmd = path
             
+            # Déterminer le terminal à utiliser
+            terminal_cmd = self._get_linux_terminal()
+            
             content = f"""[Desktop Entry]
 Type=Application
 Name={item.get('name', 'AutoStart Item')}
-Exec={exec_cmd}
+Exec={terminal_cmd} -e "bash -c '{exec_cmd}; exec bash'"
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
 Comment=Auto-Start-Sys Plugin
+Terminal=false
 """
             
             with open(desktop_path, "w", encoding="utf-8") as f:
@@ -776,6 +780,30 @@ Comment=Auto-Start-Sys Plugin
             
         except Exception as e:
             print(f"  ❌ Erreur: {e}")
+    
+    def _get_linux_terminal(self) -> str:
+        """Détecte et retourne le terminal disponible sur Linux."""
+        import shutil
+        
+        # Liste des terminaux courants, dans l'ordre de préférence
+        terminals = [
+            "gnome-terminal",
+            "konsole",
+            "xfce4-terminal", 
+            "mate-terminal",
+            "lxterminal",
+            "terminator",
+            "tilix",
+            "xterm",
+            "x-terminal-emulator"
+        ]
+        
+        for term in terminals:
+            if shutil.which(term):
+                return term
+        
+        # Fallback par défaut
+        return "xterm"
     
     def _uninstall_system_startup(self) -> None:
         """Désinstalle les items du démarrage système."""

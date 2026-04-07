@@ -546,6 +546,19 @@ class NavigationManager:
         """Efface l'écran."""
         os.system('cls' if os.name == 'nt' else 'clear')
     
+    def clear_screen_ansi(self) -> None:
+        """Efface l'écran avec ANSI (sans clignotement)."""
+        # Move cursor to home position and clear screen
+        print(f"{self.ANSI['move_home']}{self.ANSI['clear_screen']}", end="", flush=True)
+    
+    def move_to_home(self) -> None:
+        """Déplace le curseur en haut à gauche."""
+        print(self.ANSI['move_home'], end="", flush=True)
+    
+    def clear_line(self) -> None:
+        """Efface la ligne courante."""
+        print(self.ANSI['clear_line'], end="", flush=True)
+    
     def render_menu_item(self, item: MenuItem, index: int, is_selected: bool) -> str:
         """Rend un élément de menu."""
         theme = self.get_theme()
@@ -573,17 +586,32 @@ class NavigationManager:
         
         return line
     
-    def render_menu(self, items: List[MenuItem], title: str = "", footer: str = "") -> None:
+    def render_menu(self, items: List[MenuItem], title: str = "", footer: str = "", use_ansi_clear: bool = False) -> None:
         """Affiche le menu complet."""
-        self.clear_screen()
+        if use_ansi_clear:
+            # Rendu sans clignotement : repositionne et réécrit
+            self.move_to_home()
+        else:
+            self.clear_screen()
+        
         theme = self.get_theme()
         
         # Appliquer le style de curseur
         self.set_cursor_style(theme.style)
         
+        # Calculer la largeur du terminal pour effacer correctement les lignes
+        try:
+            terminal_width = os.get_terminal_size().columns
+        except OSError:
+            terminal_width = 80
+        
+        lines_output = []
+        
         # Titre
         if title:
-            print(f"\n{self.ANSI['bold']}{title}{self.ANSI['reset']}\n")
+            lines_output.append("")
+            lines_output.append(f"{self.ANSI['bold']}{title}{self.ANSI['reset']}")
+            lines_output.append("")
         
         # Calculer la fenêtre visible
         visible = self.config.get("visible_items", 10)
@@ -597,7 +625,9 @@ class NavigationManager:
         
         # Indicateur de scroll haut
         if self.scroll_offset > 0:
-            print(f"   {self.ANSI['dim']}▲ {self.scroll_offset} éléments au-dessus{self.ANSI['reset']}")
+            lines_output.append(f"   {self.ANSI['dim']}▲ {self.scroll_offset} éléments au-dessus{self.ANSI['reset']}")
+        else:
+            lines_output.append("")  # Ligne vide pour garder le même nombre de lignes
         
         # Afficher les éléments visibles
         start = self.scroll_offset
@@ -607,25 +637,42 @@ class NavigationManager:
             item = items[i]
             is_selected = (i == self.selected_index)
             line = self.render_menu_item(item, i, is_selected)
-            print(line)
+            lines_output.append(line)
+        
+        # Remplir les lignes manquantes pour garder une hauteur fixe
+        for _ in range(visible - (end - start)):
+            lines_output.append("")
         
         # Indicateur de scroll bas
         remaining = total - end
         if remaining > 0:
-            print(f"   {self.ANSI['dim']}▼ {remaining} éléments en dessous{self.ANSI['reset']}")
+            lines_output.append(f"   {self.ANSI['dim']}▼ {remaining} éléments en dessous{self.ANSI['reset']}")
+        else:
+            lines_output.append("")
         
         # Mode de recherche
         if self.in_search_mode:
-            print(f"\n{self.ANSI['yellow']}Recherche: {self.search_query}_{self.ANSI['reset']}")
+            lines_output.append("")
+            lines_output.append(f"{self.ANSI['yellow']}Recherche: {self.search_query}_{self.ANSI['reset']}")
+        else:
+            lines_output.append("")
+            lines_output.append("")
         
         # Footer
         if footer:
-            print(f"\n{self.ANSI['dim']}{footer}{self.ANSI['reset']}")
+            lines_output.append("")
+            lines_output.append(f"{self.ANSI['dim']}{footer}{self.ANSI['reset']}")
         
         # Info navigation
         if self.mode == NavigationMode.DYNAMIC:
             keymap_name = DEFAULT_KEYMAPS.get(self.current_keymap, {}).get("name", self.current_keymap)
-            print(f"\n{self.ANSI['dim']}Navigation: {keymap_name} | Thème: {self.current_theme}{self.ANSI['reset']}")
+            lines_output.append("")
+            lines_output.append(f"{self.ANSI['dim']}Navigation: {keymap_name} | Thème: {self.current_theme}{self.ANSI['reset']}")
+        
+        # Afficher toutes les lignes en effaçant le reste de chaque ligne
+        for line in lines_output:
+            # Effacer la ligne puis écrire le contenu
+            print(f"{self.ANSI['clear_line']}{line}")
     
     def navigate_menu(
         self,
@@ -698,16 +745,24 @@ class NavigationManager:
         self.scroll_offset = 0
         keymap = self.get_keymap()
         key_buffer = ""
+        first_render = True
         
         try:
             self.terminal.setup_raw_mode()
             self.hide_cursor()
             
             while True:
-                self.render_menu(items, title, footer)
+                # Premier rendu : clear complet, puis repositionnement ANSI
+                if first_render:
+                    self.clear_screen()
+                    self.render_menu(items, title, footer, use_ansi_clear=False)
+                    first_render = False
+                else:
+                    # Rendus suivants : sans clignotement
+                    self.render_menu(items, title, footer, use_ansi_clear=True)
                 
                 # Attendre une touche
-                time.sleep(0.05)  # Petit délai pour réduire la charge CPU
+                time.sleep(0.03)  # Délai réduit pour meilleure réactivité
                 
                 key = self.terminal.get_key()
                 if not key:

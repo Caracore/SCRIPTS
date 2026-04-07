@@ -171,26 +171,45 @@ class NotificationsPlugin(Plugin):
             pass
     
     def _init_windows_notifier(self) -> None:
-        """Initialise le système de notifications Windows."""
-        if os.name != 'nt':
-            return
+        """Initialise le système de notifications."""
+        self._notifier_type = "fallback"
         
         try:
-            # Essayer d'utiliser win10toast ou plyer
+            # Priorité 1: plyer (cross-platform, bien maintenu, sûr)
             try:
-                from win10toast import ToastNotifier
-                self._windows_notifier = ToastNotifier()
-                self._notifier_type = "win10toast"
+                from plyer import notification as plyer_notification
+                self._windows_notifier = plyer_notification
+                self._notifier_type = "plyer"
+                return
             except ImportError:
+                pass
+            
+            # Priorité 2: win10toast (Windows uniquement)
+            if os.name == 'nt':
                 try:
-                    from plyer import notification as plyer_notification
-                    self._windows_notifier = plyer_notification
-                    self._notifier_type = "plyer"
+                    from win10toast import ToastNotifier
+                    self._windows_notifier = ToastNotifier()
+                    self._notifier_type = "win10toast"
+                    return
                 except ImportError:
-                    # Fallback: utiliser PowerShell
-                    self._notifier_type = "powershell"
+                    pass
+            
+            # Priorité 3: notify2 (Linux avec D-Bus)
+            if os.name != 'nt':
+                try:
+                    import notify2
+                    notify2.init("Gestionnaire de Scripts")
+                    self._windows_notifier = notify2
+                    self._notifier_type = "notify2"
+                    return
+                except (ImportError, Exception):
+                    pass
+            
+            # Fallback: PowerShell (Windows) ou notify-send (Linux)
+            self._notifier_type = "fallback"
+            
         except Exception:
-            self._notifier_type = "powershell"
+            self._notifier_type = "fallback"
     
     def get_menu_items(self) -> List[Dict[str, Any]]:
         """Ajoute l'entrée menu."""
@@ -455,7 +474,7 @@ class NotificationsPlugin(Plugin):
             input("  Appuyez sur Entrée pour continuer...")
     
     def _send_windows_notification(self, notification: Dict) -> None:
-        """Envoie une notification Windows (toast)."""
+        """Envoie une notification système (Windows/Linux)."""
         settings = self.config.get("settings", {}).get("windows", {})
         if not settings.get("enabled", True):
             return
@@ -466,17 +485,8 @@ class NotificationsPlugin(Plugin):
         duration = settings.get("duration", 5)
         
         try:
-            if self._notifier_type == "win10toast":
-                # win10toast
-                self._windows_notifier.show_toast(
-                    title=f"{app_name}: {title}",
-                    msg=message,
-                    duration=duration,
-                    threaded=True
-                )
-            
-            elif self._notifier_type == "plyer":
-                # plyer
+            if self._notifier_type == "plyer":
+                # plyer (cross-platform)
                 self._windows_notifier.notify(
                     title=f"{app_name}: {title}",
                     message=message,
@@ -484,49 +494,97 @@ class NotificationsPlugin(Plugin):
                     timeout=duration
                 )
             
+            elif self._notifier_type == "win10toast":
+                # win10toast (Windows)
+                self._windows_notifier.show_toast(
+                    title=f"{app_name}: {title}",
+                    msg=message,
+                    duration=duration,
+                    threaded=True
+                )
+            
+            elif self._notifier_type == "notify2":
+                # notify2 (Linux)
+                n = self._windows_notifier.Notification(
+                    f"{app_name}: {title}",
+                    message
+                )
+                n.timeout = duration * 1000  # millisecondes
+                n.show()
+            
             else:
-                # Fallback PowerShell
-                self._send_powershell_notification(title, message, app_name)
+                # Fallback natif
+                if os.name == 'nt':
+                    self._send_powershell_notification(title, message, app_name)
+                else:
+                    self._send_linux_notification(title, message, app_name, duration)
                 
         except Exception:
             # Fallback silencieux
+            pass
+    
+    def _send_linux_notification(self, title: str, message: str, app_name: str, duration: int) -> None:
+        """Envoie une notification via notify-send (Linux fallback)."""
+        import subprocess
+        import shutil
+        
+        # Vérifier si notify-send est disponible
+        if not shutil.which("notify-send"):
+            return
+        
+        try:
+            subprocess.run(
+                [
+                    "notify-send",
+                    f"{app_name}: {title}",
+                    message,
+                    "-t", str(duration * 1000),  # timeout en ms
+                    "-a", app_name
+                ],
+                capture_output=True,
+                timeout=5
+            )
+        except Exception:
             pass
     
     def _send_powershell_notification(self, title: str, message: str, app_name: str) -> None:
         """Envoie une notification via PowerShell (fallback)."""
         import subprocess
         
-        # Échapper les caractères spéciaux
-        title = title.replace("'", "''").replace('"', '""')
-        message = message.replace("'", "''").replace('"', '""')
-        app_name = app_name.replace("'", "''").replace('"', '""')
+        # Échapper les caractères spéciaux pour PowerShell
+        title = title.replace("'", "''").replace('"', '`"').replace('$', '`$')
+        message = message.replace("'", "''").replace('"', '`"').replace('$', '`$')
+        app_name = app_name.replace("'", "''").replace('"', '`"').replace('$', '`$')
         
+        # Utiliser BurntToast si disponible, sinon notification basique
         ps_script = f'''
-        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-        [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
+        $ErrorActionPreference = "SilentlyContinue"
         
-        $template = @"
-        <toast>
-            <visual>
-                <binding template="ToastText02">
-                    <text id="1">{app_name}: {title}</text>
-                    <text id="2">{message}</text>
-                </binding>
-            </visual>
-        </toast>
-"@
+        # Méthode 1: BurntToast (recommandé)
+        if (Get-Module -ListAvailable -Name BurntToast) {{
+            Import-Module BurntToast
+            New-BurntToastNotification -Text "{app_name}: {title}", "{message}"
+            exit 0
+        }}
         
-        $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
-        $xml.LoadXml($template)
-        $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
-        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("{app_name}").Show($toast)
+        # Méthode 2: Utiliser Windows.Forms pour un balloon tip
+        Add-Type -AssemblyName System.Windows.Forms
+        $balloon = New-Object System.Windows.Forms.NotifyIcon
+        $balloon.Icon = [System.Drawing.SystemIcons]::Information
+        $balloon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+        $balloon.BalloonTipTitle = "{app_name}: {title}"
+        $balloon.BalloonTipText = "{message}"
+        $balloon.Visible = $true
+        $balloon.ShowBalloonTip(5000)
+        Start-Sleep -Milliseconds 5500
+        $balloon.Dispose()
         '''
         
         try:
             subprocess.run(
                 ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
                 capture_output=True,
-                timeout=5,
+                timeout=10,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             )
         except Exception:
@@ -571,23 +629,23 @@ class NotificationsPlugin(Plugin):
             status = "🟢 ACTIVÉ" if enabled else "⚪ DÉSACTIVÉ"
             
             channel_names = {
-                "windows": "Windows uniquement",
+                "windows": "Système uniquement",
                 "terminal": "Terminal uniquement",
-                "both": "Windows + Terminal",
+                "both": "Système + Terminal",
                 "none": "Aucun"
             }
             
             print(f"\nStatut: {status}")
             print(f"Canal: {channel_names.get(channel, channel)}")
             
-            # Infos Windows
-            if os.name == 'nt':
-                notifier_info = {
-                    "win10toast": "win10toast (installé)",
-                    "plyer": "plyer (installé)",
-                    "powershell": "PowerShell (fallback)"
-                }
-                print(f"Notifier Windows: {notifier_info.get(self._notifier_type, 'N/A')}")
+            # Infos notifier
+            notifier_info = {
+                "plyer": "✓ plyer (recommandé)",
+                "win10toast": "✓ win10toast",
+                "notify2": "✓ notify2 (D-Bus)",
+                "fallback": "⚠ Fallback natif"
+            }
+            print(f"Notifier: {notifier_info.get(self._notifier_type, self._notifier_type)}")
             
             # Heures silencieuses
             quiet = self.config.get("quiet_hours", {})
@@ -599,13 +657,13 @@ class NotificationsPlugin(Plugin):
             print("\n" + "-" * 55)
             print("  1. Activer/Désactiver")
             print("  2. Choisir le canal")
-            print("  3. Paramètres Windows")
+            print("  3. Paramètres Système")
             print("  4. Paramètres Terminal")
             print("  5. Filtres de notifications")
             print("  6. Heures silencieuses")
             print("  7. Voir l'historique")
             print("  8. Tester les notifications")
-            print("  9. Installer win10toast (recommandé)")
+            print("  9. Installer dépendances (plyer)")
             print("  R. Retour")
             
             choice = input("\nChoix: ").strip().lower()
@@ -826,33 +884,63 @@ class NotificationsPlugin(Plugin):
         input("\nAppuyez sur Entrée...")
     
     def _install_win10toast(self) -> None:
-        """Installe win10toast pour de meilleures notifications Windows."""
-        print("\n--- Installation de win10toast ---")
-        print("\nwin10toast offre de meilleures notifications Windows natives.")
+        """Installe les dépendances de notification (plyer recommandé)."""
+        print("\n--- Installation des dépendances ---")
+        print("\n╭─────────────────────────────────────────────────────╮")
+        print("│  Bibliothèques de notifications recommandées       │")
+        print("├─────────────────────────────────────────────────────┤")
+        print("│  📦 plyer        - Cross-platform (recommandé)     │")
+        print("│                   Windows, Linux, macOS            │")
+        print("│                   Maintenu par Kivy, sûr, stable   │")
+        print("│                                                     │")
+        print("│  📦 notify2      - Linux uniquement (D-Bus)        │")
+        print("│                   Nécessite libnotify              │")
+        print("╰─────────────────────────────────────────────────────╯")
         
-        confirm = input("Installer maintenant? (o/n): ").strip().lower()
-        if confirm != "o":
+        print("\n  1. Installer plyer (recommandé - tous OS)")
+        print("  2. Installer notify2 (Linux uniquement)")
+        print("  3. Installer les deux")
+        print("  R. Retour")
+        
+        choice = input("\nChoix: ").strip().lower()
+        
+        if choice == "r":
             return
         
         import subprocess
-        print("\nInstallation en cours...")
+        packages = []
         
-        try:
-            result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "win10toast"],
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
-            
-            if result.returncode == 0:
-                print("\n✓ win10toast installé avec succès!")
-                print("  Redémarrez le gestionnaire pour utiliser win10toast.")
-                # Réinitialiser le notifier
-                self._init_windows_notifier()
-            else:
-                print(f"\n❌ Erreur: {result.stderr}")
-        except Exception as e:
-            print(f"\n❌ Erreur: {e}")
+        if choice == "1":
+            packages = ["plyer"]
+        elif choice == "2":
+            packages = ["notify2"]
+        elif choice == "3":
+            packages = ["plyer", "notify2"]
+        else:
+            return
+        
+        for pkg in packages:
+            print(f"\n📥 Installation de {pkg}...")
+            try:
+                result = subprocess.run(
+                    [sys.executable, "-m", "pip", "install", pkg],
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+                
+                if result.returncode == 0:
+                    print(f"  ✓ {pkg} installé avec succès!")
+                else:
+                    print(f"  ❌ Erreur: {result.stderr[:200]}")
+            except subprocess.TimeoutExpired:
+                print(f"  ❌ Timeout lors de l'installation de {pkg}")
+            except Exception as e:
+                print(f"  ❌ Erreur: {e}")
+        
+        # Réinitialiser le notifier
+        print("\n🔄 Réinitialisation du notifier...")
+        self._init_windows_notifier()
+        print(f"  Notifier actif: {self._notifier_type}")
         
         input("\nAppuyez sur Entrée...")
