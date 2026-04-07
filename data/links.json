@@ -1,3 +1,10 @@
 {
-  "links": []
+  "links": [
+    {
+      "name": "Ascii Art",
+      "url": "https://asciiart.fr/",
+      "category": "Design",
+      "description": "Ascii Art French and Free"
+    }
+  ]
 }

@@ -66,3 +66,26 @@ script-auto-test-virtual-box.py lancé dans un nouveau terminal (PID: 8352)
 [Plugin] Erreur dans hook POST_EXECUTE: AutoStartSysPlugin.on_script_executed() takes from 2 to 3 positional arguments but 4 were given
 
 Appuyez sur Entrée pour continuer...
+
+
+✅ Revue cross-platform
+
+Le code est déjà compatible Windows/Linux grâce à :
+
+┌────────────────────┬───────────────────────────────────────────────────────────┐
+│ Aspect             │ Implémentation                                            │
+├────────────────────┼───────────────────────────────────────────────────────────┤
+│ Clear screen       │ os.system('cls' if os.name == 'nt' else 'clear')          │
+├────────────────────┼───────────────────────────────────────────────────────────┤
+│ Chemins            │ pathlib.Path utilisé partout                              │
+├────────────────────┼───────────────────────────────────────────────────────────┤
+│ Processus détachés │ platform.system() dans launcher.py                        │
+├────────────────────┼───────────────────────────────────────────────────────────┤
+│ Sons (Pomodoro)    │ winsound (Win) / paplay ou \a (Linux)                     │
+├────────────────────┼───────────────────────────────────────────────────────────┤
+│ Explorateur        │ explorer (Win) / xdg-open (Linux)                         │
+├────────────────────┼───────────────────────────────────────────────────────────┤
+│ Terminaux          │ Windows Terminal/cmd (Win) / gnome-terminal/xterm (Linux) │
+└────────────────────┴───────────────────────────────────────────────────────────┘
+
+Les deux plugins utilisent les mêmes patterns cross-platform que le reste du code.
