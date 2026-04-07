@@ -1,0 +1,17 @@
+{
+  "aliases": [
+    {
+      "id": "n",
+      "name": "n",
+      "command": "nvim",
+      "description": "Neovim",
+      "shells": [
+        "powershell",
+        "cmd",
+        "git_bash"
+      ],
+      "is_simple": true,
+      "created_at": "2026-04-07T21:23:15.339379"
+    }
+  ]
+}

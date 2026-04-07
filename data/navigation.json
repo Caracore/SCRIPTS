@@ -1,7 +1,7 @@
 {
-  "mode": "static",
+  "mode": "dynamic",
   "keymap": "arrows",
-  "theme": "fire",
+  "theme": "minimal",
   "custom_keymaps": {},
   "custom_themes": {},
   "visible_items": 10,

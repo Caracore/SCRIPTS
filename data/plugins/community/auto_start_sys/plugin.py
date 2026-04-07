@@ -139,8 +139,8 @@ class AutoStartSysPlugin(Plugin):
     def get_menu_items(self) -> List[Dict[str, Any]]:
         """Ajoute l'entrée menu."""
         return [{
-            "key": "S",
-            "label": "Auto-Start Système    [S]",
+            "key": "Y",
+            "label": "Auto-Start Système    [Y]",
             "handler": self.show_menu
         }]
     

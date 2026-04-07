@@ -3,7 +3,7 @@
     "enabled": true,
     "scripts": []
   },
-  "editor": "system",
+  "editor": "nvim",
   "editor_custom": false,
   "first_run_complete": true,
   "ascii_enabled": true
