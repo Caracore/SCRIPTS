@@ -1,0 +1,11 @@
+{
+  "mode": "static",
+  "keymap": "arrows",
+  "theme": "fire",
+  "custom_keymaps": {},
+  "custom_themes": {},
+  "visible_items": 10,
+  "show_shortcuts": true,
+  "show_description": true,
+  "animation_speed": 50
+}

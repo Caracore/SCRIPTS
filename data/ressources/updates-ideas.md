@@ -89,3 +89,30 @@ Le code est déjà compatible Windows/Linux grâce à :
 └────────────────────┴───────────────────────────────────────────────────────────┘
 
 Les deux plugins utilisent les mêmes patterns cross-platform que le reste du code.
+
+✅ Intégration terminée
+
+Navigation statique et dynamique intégrée au programme principal:
+
+ 1. Import dans program.py - NavigationManager, NavigationMode, MenuItem
+ 2. Nouveau menu #9 "Navigation [V]" - Accès aux paramètres de navigation
+ 3. Modes de navigation:
+  - Statique (par défaut) - Navigation classique par saisie texte
+  - Dynamique - Navigation avec flèches/vim et curseur visuel
+ 4. Dans le menu des paramètres de navigation (9 ou V):
+  - Changer de mode (statique ↔ dynamique)
+  - Choisir le keymap (default/vim/arrows/wasd)
+  - Choisir le thème de curseur (7 thèmes)
+  - Créer des keymaps personnalisés
+ 5. 7 Thèmes de curseur: default, minimal, neon, retro, ocean, fire, vim
+ 6. 4 Keymaps prédéfinis:
+  - default - Flèches + raccourcis courants
+  - vim - hjkl + gg/G/u/d
+  - arrows - Flèches uniquement
+  - wasd - Style jeu vidéo
+
+Pour tester:
+
+ cd C:\Users\jm214\Documents\SCRIPTS
+ python launcher.py
+ # Aller dans 9. Navigation pour configurer le mode dynamique

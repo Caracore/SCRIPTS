@@ -57,7 +57,7 @@ class LinksPlugin(Plugin):
         """Ajoute l'entrée de menu pour les liens."""
         return [
             {
-                "key": "9",
+                "key": "K",
                 "label": "Liens Rapides         [K]",
                 "handler": self.manage_links
             }

@@ -3,6 +3,7 @@ import os
 from script import Script as s
 from plugins import PluginManager, HookType
 from themes import ThemeManager
+from navigation import NavigationManager, NavigationMode, MenuItem, navigation_settings_menu
 
 class Program:
     def __init__(self, name, current_path, target, scripts_path=None):
@@ -16,6 +17,9 @@ class Program:
         
         # Initialiser le gestionnaire de thèmes
         self.theme_manager = ThemeManager(os.path.join(current_path, "data"))
+        
+        # Initialiser le gestionnaire de navigation
+        self.nav_manager = NavigationManager(os.path.join(current_path, "data"))
         
         # Initialiser le gestionnaire de plugins
         self.plugin_manager = PluginManager(self)
@@ -68,65 +72,137 @@ class Program:
         self.startup()
         
         while True:
-            self.clear_screen()
-            self.ascii_dashboard()
+            # Construire les items de menu
+            menu_items = self._build_menu_items()
             
-            # Déclencher le hook avant affichage du menu
-            self.plugin_manager.trigger_hook(HookType.ON_MENU_DISPLAY)
+            # Utiliser le mode de navigation configuré
+            if self.nav_manager.mode == NavigationMode.DYNAMIC:
+                self._menu_dynamic(menu_items)
+            else:
+                self._menu_static(menu_items)
+    
+    def _build_menu_items(self) -> list:
+        """Construit la liste des éléments de menu."""
+        items = [
+            MenuItem(key="0", label="Exit", handler=self._exit),
+            MenuItem(key="1", label="Executer Un Script    [E]", handler=lambda: s.execute_script(self)),
+            MenuItem(key="2", label="Nouveau Script        [N]", handler=lambda: s.create_script(self)),
+            MenuItem(key="3", label="Éditer Un Script      [D]", handler=lambda: s.edit_script(self)),
+            MenuItem(key="4", label="Parcourir Scripts     [O]", handler=lambda: s.open_script(self)),
+            MenuItem(key="5", label="Auto-Start            [A]", handler=lambda: s.manage_autostart(self)),
+            MenuItem(key="6", label="Options & Paramètres  [S]", handler=lambda: s.option(self)),
+            MenuItem(key="7", label="Plugins               [L]", handler=self.manage_plugins),
+            MenuItem(key="8", label="Personnalisation      [T]", handler=self._personalization_menu),
+            MenuItem(key="9", label="Navigation            [V]", handler=lambda: navigation_settings_menu(self.nav_manager)),
+        ]
+        
+        # Ajouter les éléments des plugins
+        for plugin_item in self.plugin_manager.menu_items:
+            items.append(MenuItem(
+                key=plugin_item['key'],
+                label=plugin_item['label'],
+                handler=plugin_item['handler']
+            ))
+        
+        return items
+    
+    def _personalization_menu(self):
+        """Menu de personnalisation."""
+        from themes import manage_themes
+        manage_themes(self)
+    
+    def _exit(self):
+        """Quitte le programme."""
+        self.plugin_manager.trigger_hook(HookType.ON_SHUTDOWN)
+        self.clear_screen()
+        print("\n>> Au revoir <<\n")
+        exit(0)
+    
+    def _menu_static(self, menu_items: list):
+        """Menu en mode statique (navigation classique)."""
+        self.clear_screen()
+        self.ascii_dashboard()
+        
+        # Déclencher le hook avant affichage du menu
+        self.plugin_manager.trigger_hook(HookType.ON_MENU_DISPLAY)
+        
+        # Afficher les items
+        for item in menu_items:
+            print(f"  {item.key}. {item.label}")
+        
+        imenu = input("\n>> ").strip().lower()
+        
+        # Déclencher le hook après choix
+        self.plugin_manager.trigger_hook(HookType.ON_MENU_CHOICE, choice=imenu)
+        
+        # Trouver et exécuter l'item correspondant
+        for item in menu_items:
+            if imenu == item.key.lower() or imenu in self._get_shortcuts(item.key):
+                if item.handler:
+                    item.handler()
+                return
+        
+        print("Choix invalide. Réessayez.")
+        input("\nAppuyez sur Entrée...")
+    
+    def _get_shortcuts(self, key: str) -> list:
+        """Retourne les raccourcis alternatifs pour une touche."""
+        shortcuts = {
+            "0": ["exit", "q", "quit"],
+            "1": ["e"],
+            "2": ["n"],
+            "3": ["d"],
+            "4": ["o"],
+            "5": ["a"],
+            "6": ["s"],
+            "7": ["l"],
+            "8": ["t"],
+            "9": ["v"],
+        }
+        return shortcuts.get(key, [])
+    
+    def _menu_dynamic(self, menu_items: list):
+        """Menu en mode dynamique (navigation flèches/vim)."""
+        # Construire l'en-tête avec ASCII art
+        self.clear_screen()
+        
+        # Charger la config pour vérifier si ASCII est activé
+        config = s.load_config(self)
+        header = ""
+        
+        if config.get("ascii_enabled", True):
+            ascii_art = self.theme_manager.get_current_ascii()
+            if ascii_art:
+                header = ascii_art + "\n"
+        
+        # Message de bienvenue
+        custom_welcome = self.theme_manager.get_custom_welcome()
+        if custom_welcome:
+            header += f"{custom_welcome}\n"
+        else:
+            header += f"Bienvenue dans {self.name}!\n"
+        
+        header += f"Dossier scripts: {self.scripts_path}\n"
+        
+        # Langages
+        all_langs = self.plugin_manager.get_all_languages()
+        header += f"Langages: {', '.join(all_langs.keys())}"
+        
+        # Déclencher le hook
+        self.plugin_manager.trigger_hook(HookType.ON_MENU_DISPLAY)
+        
+        # Navigation dynamique
+        footer = "↑↓ Naviguer | Enter Sélectionner | ? Aide | Q Quitter"
+        result = self.nav_manager.navigate_menu(menu_items, title=header, footer=footer, allow_back=False)
+        
+        # Déclencher le hook après choix
+        if result:
+            self.plugin_manager.trigger_hook(HookType.ON_MENU_CHOICE, choice=result.key)
             
-            print("  0. Exit")
-            print("  1. Executer Un Script    [E]")
-            print("  2. Nouveau Script        [N]")
-            print("  3. Éditer Un Script      [D]")
-            print("  4. Parcourir Scripts     [O]")
-            print("  5. Auto-Start            [A]")
-            print("  6. Options & Paramètres  [P]")
-            print("  7. Plugins               [L]")
-            print("  8. Personnalisation      [T]")
-            
-            # Afficher les éléments de menu des plugins
-            for item in self.plugin_manager.menu_items:
-                print(f"  {item['key']}. {item['label']}")
-            
-            imenu = input("\n>> ").strip().lower()
-            
-            # Déclencher le hook après choix
-            self.plugin_manager.trigger_hook(HookType.ON_MENU_CHOICE, choice=imenu)
-
-            match imenu:
-                case "0" | "exit" | "q":
-                    self.plugin_manager.trigger_hook(HookType.ON_SHUTDOWN)
-                    self.clear_screen()
-                    print("\n>> Au revoir <<\n")
-                    exit(0)
-                case "1" | "e":
-                    s.execute_script(self)
-                case "2" | "n":
-                    s.create_script(self)
-                case "3" | "d":
-                    s.edit_script(self)
-                case "4" | "o":
-                    s.open_script(self)
-                case "5" | "a":
-                    s.manage_autostart(self)
-                case "6" | "p":
-                    s.option(self)
-                case "7" | "l":
-                    self.manage_plugins()
-                case "8" | "t":
-                    from themes import manage_themes
-                    manage_themes(self)
-                case _:
-                    # Vérifier les commandes des plugins
-                    handled = False
-                    for item in self.plugin_manager.menu_items:
-                        if imenu == item['key'].lower():
-                            item['handler']()
-                            handled = True
-                            break
-                    if not handled:
-                        print("Choix invalide. Réessayez.")
-                        input("\nAppuyez sur Entrée...")
+            if result.key == "quit" or result.key == "0":
+                self._exit()
+            elif result.handler:
+                result.handler()
     
     def manage_plugins(self):
         """Gère les plugins installés."""
