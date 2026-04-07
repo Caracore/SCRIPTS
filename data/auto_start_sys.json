@@ -1,7 +1,7 @@
 {
   "startup_items": [
     {
-      "active": true,
+      "active": false,
       "trigger": "system",
       "type": "manager",
       "name": "Gestionnaire de Scripts",

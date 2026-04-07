@@ -1,5 +1,5 @@
 {
-  "mode": "static",
+  "mode": "dynamic",
   "keymap": "arrows",
   "theme": "minimal",
   "custom_keymaps": {},

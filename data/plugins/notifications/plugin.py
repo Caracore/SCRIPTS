@@ -416,11 +416,54 @@ class NotificationsPlugin(Plugin):
         """Envoie une notification sur les canaux configurés."""
         channel = self.config.get("channel", "both")
         
+        # Jouer le son si activé
+        self._play_notification_sound(notification.get("type", NotificationType.INFO))
+        
         if channel in ["terminal", "both"]:
             self._send_terminal_notification(notification)
         
         if channel in ["windows", "both"] and os.name == 'nt':
             self._send_windows_notification(notification)
+    
+    def _play_notification_sound(self, notif_type: NotificationType) -> None:
+        """Joue un son de notification."""
+        settings = self.config.get("settings", {}).get("windows", {})
+        if not settings.get("sound", True):
+            return
+        
+        try:
+            if os.name == 'nt':
+                import winsound
+                # Sons Windows selon le type
+                sound_map = {
+                    NotificationType.INFO: 'SystemAsterisk',
+                    NotificationType.SUCCESS: 'SystemExclamation',
+                    NotificationType.WARNING: 'SystemHand',
+                    NotificationType.ERROR: 'SystemHand',
+                    NotificationType.SCRIPT_START: 'SystemAsterisk',
+                    NotificationType.SCRIPT_END: 'SystemExclamation',
+                    NotificationType.PLUGIN_EVENT: 'SystemAsterisk',
+                }
+                sound = sound_map.get(notif_type, 'SystemAsterisk')
+                winsound.PlaySound(sound, winsound.SND_ALIAS | winsound.SND_ASYNC)
+            else:
+                # Linux: utiliser paplay ou aplay si disponible
+                import subprocess
+                import shutil
+                if shutil.which("paplay"):
+                    # PulseAudio
+                    subprocess.Popen(
+                        ["paplay", "/usr/share/sounds/freedesktop/stereo/message.oga"],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                elif shutil.which("aplay"):
+                    # ALSA fallback
+                    subprocess.Popen(
+                        ["aplay", "-q", "/usr/share/sounds/alsa/Front_Center.wav"],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+        except Exception:
+            pass  # Son non critique
     
     def _send_terminal_notification(self, notification: Dict) -> None:
         """Affiche une notification dans le terminal."""
@@ -485,43 +528,78 @@ class NotificationsPlugin(Plugin):
         duration = settings.get("duration", 5)
         
         try:
+            # Priorité 1: BurntToast (Windows - plus fiable)
+            if os.name == 'nt' and self._try_burnttoast(title, message, app_name):
+                return
+            
+            # Priorité 2: Plyer
             if self._notifier_type == "plyer":
-                # plyer (cross-platform)
                 self._windows_notifier.notify(
                     title=f"{app_name}: {title}",
                     message=message,
                     app_name=app_name,
                     timeout=duration
                 )
+                return
             
-            elif self._notifier_type == "win10toast":
-                # win10toast (Windows)
+            # Priorité 3: win10toast
+            if self._notifier_type == "win10toast":
                 self._windows_notifier.show_toast(
                     title=f"{app_name}: {title}",
                     msg=message,
                     duration=duration,
                     threaded=True
                 )
+                return
             
-            elif self._notifier_type == "notify2":
-                # notify2 (Linux)
+            # Priorité 4: notify2 (Linux)
+            if self._notifier_type == "notify2":
                 n = self._windows_notifier.Notification(
                     f"{app_name}: {title}",
                     message
                 )
-                n.timeout = duration * 1000  # millisecondes
+                n.timeout = duration * 1000
                 n.show()
+                return
             
+            # Fallback natif
+            if os.name == 'nt':
+                self._send_powershell_notification(title, message, app_name)
             else:
-                # Fallback natif
-                if os.name == 'nt':
-                    self._send_powershell_notification(title, message, app_name)
-                else:
-                    self._send_linux_notification(title, message, app_name, duration)
+                self._send_linux_notification(title, message, app_name, duration)
                 
         except Exception:
-            # Fallback silencieux
             pass
+    
+    def _try_burnttoast(self, title: str, message: str, app_name: str) -> bool:
+        """Essaie d'envoyer via BurntToast (PowerShell). Retourne True si succès."""
+        import subprocess
+        
+        # Échapper les guillemets
+        title_safe = title.replace("'", "''").replace('"', '`"')
+        message_safe = message.replace("'", "''").replace('"', '`"')
+        app_safe = app_name.replace("'", "''").replace('"', '`"')
+        
+        ps_script = f'''
+        $ErrorActionPreference = "SilentlyContinue"
+        if (Get-Module -ListAvailable -Name BurntToast) {{
+            Import-Module BurntToast -ErrorAction SilentlyContinue
+            New-BurntToastNotification -Text "{app_safe}: {title_safe}", "{message_safe}" -ErrorAction SilentlyContinue
+            exit 0
+        }}
+        exit 1
+        '''
+        
+        try:
+            result = subprocess.run(
+                ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+                capture_output=True,
+                timeout=5,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
     
     def _send_linux_notification(self, title: str, message: str, app_name: str, duration: int) -> None:
         """Envoie une notification via notify-send (Linux fallback)."""

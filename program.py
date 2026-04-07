@@ -4,6 +4,7 @@ from script import Script as s
 from plugins import PluginManager, HookType
 from themes import ThemeManager
 from navigation import NavigationManager, NavigationMode, MenuItem, navigation_settings_menu
+from alias_manager import alias_menu
 
 class Program:
     def __init__(self, name, current_path, target, scripts_path=None):
@@ -94,6 +95,7 @@ class Program:
             MenuItem(key="7", label="Plugins               [L]", handler=self.manage_plugins),
             MenuItem(key="8", label="Personnalisation      [T]", handler=self._personalization_menu),
             MenuItem(key="9", label="Navigation            [V]", handler=lambda: navigation_settings_menu(self.nav_manager)),
+            MenuItem(key="=", label="Alias & Raccourcis    [R]", handler=lambda: alias_menu(self)),
         ]
         
         # Ajouter les éléments des plugins
@@ -158,6 +160,7 @@ class Program:
             "7": ["l"],
             "8": ["t"],
             "9": ["v"],
+            "=": ["r"],
         }
         return shortcuts.get(key, [])
     

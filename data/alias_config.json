@@ -1,0 +1,19 @@
+{
+  "aliases": [
+    "sm"
+  ],
+  "shortcuts": [
+    {
+      "type": "windows_shortcut",
+      "path": "C:\\Users\\jm214\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Script Manager.lnk",
+      "hotkey": "Ctrl+Alt+S"
+    },
+    {
+      "type": "autohotkey",
+      "path": "C:\\Users\\jm214\\Documents\\SCRIPTS\\data\\script_manager_hotkey.ahk",
+      "hotkey": "Ctrl+Alt+S"
+    }
+  ],
+  "autorun_enabled": true,
+  "autorun_method": "startup"
+}

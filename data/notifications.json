@@ -12,7 +12,8 @@
       "enabled": true,
       "colors": true,
       "timestamp": true,
-      "compact": false
+      "compact": false,
+      "pause": false
     }
   },
   "filters": {

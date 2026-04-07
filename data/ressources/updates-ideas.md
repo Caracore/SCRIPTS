@@ -153,3 +153,140 @@ Menu option 9 → Interface pour installer :
 Pour installer maintenant :
 
  pip install plyer
+
+
+Le plugin est créé et fonctionne. Voici un résumé :
+
+✅ Plugin Organisation créé
+
+Emplacement: data\plugins\organisation\
+
+Fonctionnalités :
+
+┌───────────────────────┬────────────────────────────────────────────────────────────────────────────────┐
+│ Catégorie             │ Options                                                                        │
+├───────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ 🔄 Renommer           │ Unique, masse (préfixe/suffixe), numérotation, rechercher/remplacer            │
+├───────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ 📦 Déplacer           │ Unique, multiple, par extension                                                │
+├───────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ 📂 Créer dossiers     │ Vide, avec fichiers, par extension, par date                                   │
+├───────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ 🗂️ Alphabétique       │ Dossiers A-Z, renommage trié                                                   │
+├───────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ 🔍 Regex              │ Déplacer par pattern, renommer avec groupes                                    │
+├───────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ 🏷️ Catégories         │ Images, Documents, Vidéos, Audio, Archives, Code, Exécutables + personnalisées │
+├───────────────────────┼────────────────────────────────────────────────────────────────────────────────┤
+│ 📋 Historique         │ Voir les opérations effectuées                                                 │
+└───────────────────────┴────────────────────────────────────────────────────────────────────────────────┘
+
+Sécurité :
+
+ - ❌ Aucune suppression
+ - ❌ Pas de privilèges admin
+ - ✅ Protection des fichiers système (desktop.ini, thumbs.db, etc.)
+ - ✅ Protection des dossiers Windows (Windows, Program Files, etc.)
+ - ✅ Confirmation avant chaque action
+
+Le plugin s'affichera automatiquement dans le menu avec l'option "📁 Organisation (dossiers/Bureau)".
+
+
+✅ Nouveau module alias_manager.py
+
+Fonctionnalités:
+
+1. Alias Terminal
+
+ - Détection automatique des shells (PowerShell, Bash, Zsh, Fish, CMD)
+ - Création d'alias (ex: sm pour lancer le gestionnaire)
+ - Support multi-shell simultané
+
+2. Raccourcis Clavier
+
+ - Windows: Création de .lnk avec hotkey (ex: Ctrl+Alt+S)
+ - Linux: Fichier .desktop + configuration GNOME/KDE
+
+3. Auto-Run
+
+ - Au démarrage système (dossier Startup / ~/.config/autostart)
+ - À l'ouverture terminal (dans les profiles shell)
+ - Au login (avant le bureau)
+
+Utilisation:
+
+Dans le menu principal, nouvelle option 10. Alias & Raccourcis [R]:
+
+   1. Ajouter un alias
+   2. Supprimer un alias
+   3. Voir les shells détectés
+   4. Créer un raccourci clavier
+   5. Configurer l'auto-run
+   6. Désactiver l'auto-run
+   7. Installation rapide (alias + raccourci + autorun)
+
+L'installation rapide (7) crée automatiquement:
+
+ - Alias sm dans tous les shells
+ - Raccourci Ctrl+Alt+S
+ - Auto-run optionnel au démarrage
+
+ ✅ Modifications effectuées
+
+1. Touche corrigée pour Alias & Raccourcis
+
+ - Changée de 10 à = (touche "égal") 
+ - Raccourci clavier: R
+
+2. Plugin Timer créé (data/plugins/timer_plugin.py)
+
+ - Touche: ti ou TI
+ - Fonctionnalités:
+  - ⏱️ Temps de session actuelle
+  - 📊 Temps total accumulé (toutes sessions)
+  - 📈 Nombre de sessions
+  - 📅 Historique des 10 dernières sessions
+  - 🔄 Export des statistiques
+  - 🗑️ Réinitialisation possible
+
+Menu du Timer:
+
+ ┌─────────────────────────────────┐
+ │     Session: 5m 23s             │
+ │─────────────────────────────────│
+ │     Total: 2h 45m               │
+ └─────────────────────────────────┘
+ 
+ 1. Voir l'historique des sessions
+ 2. Réinitialiser les statistiques  
+ 3. Exporter les statistiques
+ R. Retour
+
+Le temps est sauvegardé automatiquement à la fermeture dans data/timer_stats.json.
+
+ ✅ Modifications effectuées
+
+  Dans alias_manager.py :
+
+   1. Nouvelles fonctions ajoutées :
+    - update_keyboard_shortcut() - Modifier un raccourci existant
+    - remove_keyboard_shortcut() - Supprimer le raccourci
+    - get_current_hotkey() - Obtenir le raccourci actuel
+    - create_autohotkey_shortcut() - Créer un script AutoHotkey (plus fiable)
+    - start_autohotkey() - Lancer le script AHK
+    - is_autohotkey_installed() - Vérifier si AHK est installé
+    - refresh_windows_shortcut() - Rafraîchir le cache Windows
+   2. Nouveau menu _keyboard_shortcut_menu() avec options :
+    - Créer/Modifier le raccourci
+    - Supprimer le raccourci
+    - Rafraîchir le raccourci Windows
+    - Créer raccourci AutoHotkey (alternative fiable)
+    - Lancer le script AutoHotkey
+
+  Pour faire fonctionner le raccourci :
+
+  Option 1 : Déconnectez-vous et reconnectez-vous (les raccourcis .lnk nécessitent souvent ça)
+
+  Option 2 (recommandée) : Installez AutoHotkey v2 puis double-cliquez sur data\script_manager_hotkey.ahk
+
+  Le script AHK est déjà créé et utilisera Ctrl+Alt+S. AutoHotkey est 100% fiable car il surveille activement les touches.

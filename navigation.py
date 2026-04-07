@@ -786,10 +786,18 @@ class NavigationManager:
                     key_buffer = ""  # Reset le buffer
                     
                     if action == "move_up":
-                        self.selected_index = max(0, self.selected_index - 1)
+                        # Wrap-around: si en haut, aller en bas
+                        if self.selected_index == 0:
+                            self.selected_index = len(items) - 1
+                        else:
+                            self.selected_index -= 1
                     
                     elif action == "move_down":
-                        self.selected_index = min(len(items) - 1, self.selected_index + 1)
+                        # Wrap-around: si en bas, aller en haut
+                        if self.selected_index == len(items) - 1:
+                            self.selected_index = 0
+                        else:
+                            self.selected_index += 1
                     
                     elif action == "select":
                         item = items[self.selected_index]

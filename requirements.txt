@@ -1,0 +1,14 @@
+# Gestionnaire de Scripts - Dépendances Python
+# Installation: pip install -r requirements.txt
+
+# === REQUIS ===
+plyer>=2.1.0          # Notifications cross-platform (Windows/Linux/macOS)
+
+# === OPTIONNEL (recommandé) ===
+colorama>=0.4.6       # Couleurs terminal Windows
+psutil>=5.9.0         # Monitoring système (CPU, RAM, etc.)
+requests>=2.28.0      # Requêtes HTTP pour les plugins
+
+# === OPTIONNEL (fonctionnalités avancées) ===
+# win10toast>=0.9     # Notifications Windows alternatives (Windows uniquement)
+# notify2>=0.3.1      # Notifications D-Bus (Linux uniquement)
