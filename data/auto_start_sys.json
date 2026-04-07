@@ -1,20 +1,17 @@
 {
-  "startup_items": [],
-  "conditional_items": [
+  "startup_items": [
     {
       "active": true,
-      "trigger": "conditional",
+      "trigger": "system",
       "type": "manager",
       "name": "Gestionnaire de Scripts",
       "path": "C:\\Users\\jm214\\Documents\\SCRIPTS\\main.py",
-      "trigger_type": "process",
-      "trigger_name": "discord.exe",
+      "use_autostart_flag": true,
       "id": "04cd0554"
     }
   ],
-  "enabled": true,
+  "conditional_items": [],
+  "enabled": false,
   "warnings_acknowledged": true,
-  "startup_history": [
-    1775565531.3384585
-  ]
+  "startup_history": []
 }

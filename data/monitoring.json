@@ -1,0 +1,14 @@
+{
+  "monitored_apps": [],
+  "auto_start": false,
+  "check_interval": 10,
+  "notify_on_change": true,
+  "history": [
+    {
+      "app": "discord",
+      "status": "ARRÊTÉ",
+      "time": "2026-04-07 15:20:16"
+    }
+  ],
+  "max_history": 50
+}

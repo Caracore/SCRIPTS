@@ -1,0 +1,32 @@
+{
+  "enabled": true,
+  "channel": "both",
+  "settings": {
+    "windows": {
+      "enabled": true,
+      "sound": true,
+      "duration": 5,
+      "app_name": "Gestionnaire de Scripts"
+    },
+    "terminal": {
+      "enabled": true,
+      "colors": true,
+      "timestamp": true,
+      "compact": false
+    }
+  },
+  "filters": {
+    "show_info": true,
+    "show_success": true,
+    "show_warning": true,
+    "show_error": true,
+    "show_script_events": true,
+    "show_plugin_events": true
+  },
+  "quiet_hours": {
+    "enabled": false,
+    "start": "22:00",
+    "end": "08:00"
+  },
+  "history_max": 100
+}

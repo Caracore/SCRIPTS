@@ -1,9 +1,9 @@
 {
   "autostart": {
-    "enabled": false,
+    "enabled": true,
     "scripts": []
   },
-  "editor": "nvim",
+  "editor": "system",
   "editor_custom": false,
   "first_run_complete": true,
   "ascii_enabled": true
