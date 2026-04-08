@@ -1,7 +1,12 @@
 {
-  "total_sessions": 0,
-  "total_minutes": 0,
-  "daily": {},
-  "streak": 0,
-  "last_session_date": null
+  "total_sessions": 1,
+  "total_minutes": 25,
+  "daily": {
+    "2026-04-08": {
+      "sessions": 1,
+      "minutes": 25
+    }
+  },
+  "streak": 1,
+  "last_session_date": "2026-04-08"
 }

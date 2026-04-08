@@ -1,3 +1,217 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "d0ffee3a",
+      "title": "Debug test check errors, bugs (Task Final)",
+      "description": "Debug script manager",
+      "priority": 3,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Debug",
+        "test"
+      ],
+      "created_at": "2026-04-08T06:28:40.816248",
+      "completed_at": null
+    },
+    {
+      "id": "89febb4f",
+      "title": "Idée alias open env de windows for edit path et registre. ?",
+      "description": "Registre key register",
+      "priority": 2,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Test",
+        "Idées"
+      ],
+      "created_at": "2026-04-08T06:31:34.484750",
+      "completed_at": null
+    },
+    {
+      "id": "20e2d725",
+      "title": "Test Complete for debuging and run other plateformes",
+      "description": "Go to test on Mac, Windows old version ?  And LINUX but too PI500+",
+      "priority": 3,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Test",
+        "Debug"
+      ],
+      "created_at": "2026-04-08T06:33:30.638428",
+      "completed_at": null
+    },
+    {
+      "id": "b1930214",
+      "title": "Plugins:[Put Version and author] to plugins init package",
+      "description": "none",
+      "priority": 2,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Plugins",
+        "Infos"
+      ],
+      "created_at": "2026-04-08T06:34:34.757665",
+      "completed_at": null
+    },
+    {
+      "id": "4528971b",
+      "title": "Ajout to plugin Timer",
+      "description": "Count even if not on timer page (async)",
+      "priority": 4,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Timer",
+        "Plugins"
+      ],
+      "created_at": "2026-04-08T06:36:00.707541",
+      "completed_at": null
+    },
+    {
+      "id": "47e06f27",
+      "title": "Gamification du Gestionnaire de Script (Succès)",
+      "description": "Unlock and lock succès",
+      "priority": 1,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Game",
+        "Plugins"
+      ],
+      "created_at": "2026-04-08T06:37:24.487539",
+      "completed_at": null
+    },
+    {
+      "id": "9a657ad5",
+      "title": "Bug Discover",
+      "description": "On terminal when title are long in description arrow create lettres bugs",
+      "priority": 2,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Bugs"
+      ],
+      "created_at": "2026-04-08T06:38:38.433359",
+      "completed_at": null
+    },
+    {
+      "id": "9b471860",
+      "title": "Reconfig le menu main",
+      "description": "Duplicate on Auto run at 2 times look the autorun to keep. And Alias too.",
+      "priority": 1,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Autorun",
+        "Alias",
+        "Menu"
+      ],
+      "created_at": "2026-04-08T06:41:08.711371",
+      "completed_at": null
+    },
+    {
+      "id": "99732d37",
+      "title": "Bugs little size of windows",
+      "description": "Create a instable window on windows because terminal take all place and more like copilot bug (UX bug) but not really important",
+      "priority": 1,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Bug",
+        "UX"
+      ],
+      "created_at": "2026-04-08T06:43:10.260358",
+      "completed_at": null
+    },
+    {
+      "id": "5790645b",
+      "title": "Review news idées",
+      "description": "Create to autorun options to create desktop.ini for launch to Desktop with script batch or other.",
+      "priority": 2,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Desktop",
+        "options"
+      ],
+      "created_at": "2026-04-08T06:44:57.544619",
+      "completed_at": null
+    },
+    {
+      "id": "8360cda2",
+      "title": "Review to notification and multiplatforme",
+      "description": "Multiplatforme test and review code to notification...",
+      "priority": 3,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Multiplateforme",
+        "review code",
+        "notification"
+      ],
+      "created_at": "2026-04-08T06:46:57.286877",
+      "completed_at": null
+    },
+    {
+      "id": "0369fa62",
+      "title": "Ajout de barre de recherche dans menu main pour aller plus vite",
+      "description": "tout est dans le titre",
+      "priority": 3,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Menu",
+        "main",
+        "search"
+      ],
+      "created_at": "2026-04-08T07:06:40.830745",
+      "completed_at": null
+    },
+    {
+      "id": "cdc39046",
+      "title": "Afficher timer in main menu dynamic on main menu",
+      "description": "Pomodoro",
+      "priority": 2,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Pomodoro",
+        "update"
+      ],
+      "created_at": "2026-04-08T07:11:50.014494",
+      "completed_at": null
+    },
+    {
+      "id": "0ded9a43",
+      "title": "Idée personnel et gratuit pwd",
+      "description": "Ajouter un gestionnaire de mots de passe chiffré et hashage etc ... Toute en pouvant y accéder mais gratuitement.",
+      "priority": 3,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "pwd",
+        "login",
+        "list",
+        "mot de passe"
+      ],
+      "created_at": "2026-04-08T07:38:38.767579",
+      "completed_at": null
+    },
+    {
+      "id": "c741dd2e",
+      "title": "Pomodoro bugs arrière plan ne lance pas de fin et horloge non dynamique",
+      "description": "Review de code necessaire !!!!",
+      "priority": 4,
+      "status": "todo",
+      "due_date": null,
+      "tags": [
+        "Pomodoro"
+      ],
+      "created_at": "2026-04-08T08:45:40.688200",
+      "completed_at": null
+    }
+  ]
 }

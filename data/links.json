@@ -5,6 +5,24 @@
       "url": "https://asciiart.fr/",
       "category": "Design",
       "description": "Ascii Art French and Free"
+    },
+    {
+      "name": "Vidéo vibes cat :)",
+      "url": "https://www.youtube.com/watch?v=9Eo8mXXFSkw",
+      "category": "Animals, Cat, LittleTravelBug",
+      "description": "Vidéo détente de chat de LittleTravelBug"
+    },
+    {
+      "name": "nighttime vibes mix Spotify",
+      "url": "https://open.spotify.com/playlist/0Odqq5ivBaB33jWXrssvHX",
+      "category": "Spotify, Musique, Focus",
+      "description": "Artic Monkeys etc. Playlist"
+    },
+    {
+      "name": "Artist Tools [Research all Musics]",
+      "url": "https://www.artist.tools/",
+      "category": "Musique, Research, Recherche, Spotify Bot Checker",
+      "description": "Bot, Web for found Spotify music"
     }
   ]
 }
