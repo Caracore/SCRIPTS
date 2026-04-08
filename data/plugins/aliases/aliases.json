@@ -12,6 +12,19 @@
       ],
       "is_simple": true,
       "created_at": "2026-04-07T21:23:15.339379"
+    },
+    {
+      "id": "d",
+      "name": "d",
+      "command": "discord",
+      "description": "Discord",
+      "shells": [
+        "powershell",
+        "cmd",
+        "git_bash"
+      ],
+      "is_simple": true,
+      "created_at": "2026-04-08T14:38:57.548686"
     }
   ]
 }
